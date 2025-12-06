@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Great Indian Media Map</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body { margin: 0; background-color: #0f172a; font-family: sans-serif; overflow: hidden; }
+        #mynetwork { width: 100vw; height: 100vh; }
+        .sidebar {
+            position: absolute; top: 20px; left: 20px; width: 280px;
+            background: rgba(30, 41, 59, 0.95); color: white;
+            padding: 20px; border-radius: 12px;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px); pointer-events: none;
+        }
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #38bdf8; }
+        p { font-size: 0.85rem; color: #94a3b8; line-height: 1.4; }
+        .legend-row { display: flex; align-items: center; margin-top: 8px; font-size: 0.8rem; }
+        .l-box { width: 12px; height: 12px; margin-right: 10px; border-radius: 2px; }
+        .l-circle { width: 12px; height: 12px; margin-right: 10px; border-radius: 50%; border: 2px solid white; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>🇮🇳 Media Universe</h2>
+        <p>A visualization of India's Media Ownership, including Print, TV, Movies, and Music.</p>
+        <div style="margin-top: 15px; border-top: 1px solid #475569; padding-top: 10px;">
+            <div class="legend-row"><div class="l-circle" style="background:#3b82f6"></div>Owners (Billionaires)</div>
+            <div class="legend-row"><div class="l-box" style="background:#ffffff"></div>Holding Companies</div>
+            <div class="legend-row"><div class="l-box" style="background:#ef4444"></div>News Channels</div>
+            <div class="legend-row"><div class="l-box" style="background:#10b981"></div>Print/Newspapers</div>
+            <div class="legend-row"><div class="l-box" style="background:#eab308"></div>Movies/Music</div>
+            <div class="legend-row"><div class="l-box" style="background:#8b5cf6"></div>OTT/Streaming</div>
+        </div>
+    </div>
+
+    <div id="mynetwork"></div>
+
+    <script>
+        // --- DATASET ---
+        // Groups: owner, house, news, print, movie, ott, sports
+        const nodes = [
+            // --- JIOSTAR (RELIANCE + DISNEY) ---
+            { id: 'ambani', label: 'Mukesh Ambani', group: 'owner', color: '#2563EB', size: 50 },
+            { id: 'disney_hq', label: 'Disney Global', group: 'owner', color: '#2563EB', size: 30 },
+            { id: 'jiostar', label: 'JioStar\n(JV Entity)', group: 'house', size: 40 },
+            { id: 'nw18', label: 'Network18', group: 'house', size: 30 },
+            // Assets
+            { id: 'starplus', label: 'Star Plus', group: 'movie' },
+            { id: 'colors', label: 'Colors', group: 'movie' },
+            { id: 'hotstar', label: 'Disney+ Hotstar', group: 'ott' },
+            { id: 'jiocinema', label: 'JioCinema', group: 'ott' },
+            { id: 'starsports', label: 'Star Sports', group: 'sports', color: '#f97316' },
+            { id: 'sports18', label: 'Sports18', group: 'sports', color: '#f97316' },
+            { id: 'cnn18', label: 'CNN-News18', group: 'news' },
+            { id: 'cnbc', label: 'CNBC-TV18', group: 'news' },
+            { id: 'moneycontrol', label: 'MoneyControl', group: 'print' },
+
+            // --- ADANI ---
+            { id: 'adani', label: 'Gautam Adani', group: 'owner', color: '#059669', size: 45 },
+            { id: 'amg', label: 'AMG Media', group: 'house' },
+            { id: 'ndtv_group', label: 'NDTV Group', group: 'house' },
+            { id: 'ndtv247', label: 'NDTV 24x7', group: 'news' },
+            { id: 'ndtvindia', label: 'NDTV India', group: 'news' },
+            { id: 'quint', label: 'The Quint', group: 'print' },
+
+            // --- TIMES GROUP ---
+            { id: 'jain', label: 'Jain Family', group: 'owner', color: '#DC2626', size: 45 },
+            { id: 'bccl', label: 'Times Group\n(BCCL)', group: 'house' },
+            { id: 'toi', label: 'Times of India', group: 'print' },
+            { id: 'et', label: 'Economic Times', group: 'print' },
+            { id: 'timesnow', label: 'Times Now', group: 'news' },
+            { id: 'mirchi', label: 'Radio Mirchi', group: 'movie' },
+
+            // --- ZEE ---
+            { id: 'chandra', label: 'Subhash Chandra', group: 'owner', color: '#d97706', size: 40 },
+            { id: 'zeel', label: 'ZEE Ent.', group: 'house' },
+            { id: 'zeetv', label: 'Zee TV', group: 'movie' },
+            { id: 'zeenews', label: 'Zee News', group: 'news' },
+            { id: 'zee5', label: 'ZEE5', group: 'ott' },
+            { id: 'zeemusic', label: 'Zee Music', group: 'movie' },
+
+            // --- SONY (CULVER MAX) ---
+            { id: 'sony_jp', label: 'Sony Japan', group: 'owner', color: '#4b5563', size: 30 },
+            { id: 'sony_in', label: 'Sony India\n(Culver Max)', group: 'house' },
+            { id: 'set', label: 'Sony TV (SET)', group: 'movie' },
+            { id: 'sonyliv', label: 'Sony LIV', group: 'ott' },
+            { id: 'sab', label: 'SAB TV', group: 'movie' },
+
+            // --- SUN GROUP ---
+            { id: 'maran', label: 'Kalanithi Maran', group: 'owner', color: '#7C3AED', size: 40 },
+            { id: 'sun_grp', label: 'Sun Group', group: 'house' },
+            { id: 'suntv', label: 'Sun TV', group: 'movie' },
+            { id: 'sunnxt', label: 'Sun NXT', group: 'ott' },
+            { id: 'ipl_srh', label: 'SRH (IPL)', group: 'sports', color: '#f97316' },
+
+            // --- TV9 NETWORK ---
+            { id: 'myhome', label: 'Rameswar Rao\n(My Home)', group: 'owner', color: '#4338ca', size: 35 },
+            { id: 'tv9_net', label: 'TV9 Network', group: 'house' },
+            { id: 'tv9b', label: 'TV9 Bharatvarsh', group: 'news' },
+            { id: 'tv9t', label: 'TV9 Telugu', group: 'news' },
+
+            // --- MOVIES & MUSIC (STUDIOS) ---
+            { id: 'tseries_own', label: 'Bhushan Kumar', group: 'owner', color: '#ca8a04' },
+            { id: 'tseries', label: 'T-Series', group: 'house' },
+            { id: 't_yt', label: 'YouTube\nDominance', group: 'ott' },
+            
+            { id: 'yrf_own', label: 'Aditya Chopra', group: 'owner', color: '#ca8a04' },
+            { id: 'yrf', label: 'Yash Raj Films', group: 'house' },
+            { id: 'yrf_spy', label: 'Spy Universe', group: 'movie' },
+
+            { id: 'saregama_own', label: 'Sanjiv Goenka', group: 'owner', color: '#ca8a04' },
+            { id: 'saregama', label: 'Saregama', group: 'house' },
+            { id: 'fortune', label: 'Fortune India', group: 'print' },
+
+            // --- PRINT GIANTS ---
+            { id: 'db_corp', label: 'DB Corp', group: 'house' },
+            { id: 'bhaskar', label: 'Dainik Bhaskar', group: 'print' },
+
+            { id: 'jagran_grp', label: 'Jagran Group', group: 'house' },
+            { id: 'jagran', label: 'Dainik Jagran', group: 'print' },
+
+            { id: 'ht_grp', label: 'HT Media', group: 'house' },
+            { id: 'ht_paper', label: 'Hindustan Times', group: 'print' },
+
+            { id: 'manorama_grp', label: 'Malayala\nManorama', group: 'house' },
+            { id: 'manorama', label: 'Manorama', group: 'print' },
+            
+            { id: 'eenadu_grp', label: 'Eenadu Group', group: 'house' },
+            { id: 'etv', label: 'ETV Network', group: 'movie' },
+
+            // --- NEWS NETWORKS ---
+            { id: 'it_grp', label: 'India Today', group: 'house' },
+            { id: 'aajtak', label: 'Aaj Tak', group: 'news' },
+            
+            { id: 'abp_grp', label: 'ABP Group', group: 'house' },
+            { id: 'abp', label: 'ABP News', group: 'news' },
+        ];
+
+        const edges = [
+            // JIOSTAR
+            { from: 'ambani', to: 'jiostar' }, { from: 'ambani', to: 'nw18' },
+            { from: 'disney_hq', to: 'jiostar' },
+            { from: 'jiostar', to: 'starplus' }, { from: 'jiostar', to: 'colors' },
+            { from: 'jiostar', to: 'hotstar' }, { from: 'jiostar', to: 'jiocinema' },
+            { from: 'jiostar', to: 'starsports' }, { from: 'jiostar', to: 'sports18' },
+            { from: 'nw18', to: 'cnn18' }, { from: 'nw18', to: 'cnbc' }, { from: 'nw18', to: 'moneycontrol' },
+
+            // ADANI
+            { from: 'adani', to: 'amg' }, { from: 'amg', to: 'ndtv_group' },
+            { from: 'amg', to: 'quint' },
+            { from: 'ndtv_group', to: 'ndtv247' }, { from: 'ndtv_group', to: 'ndtvindia' },
+
+            // TIMES
+            { from: 'jain', to: 'bccl' },
+            { from: 'bccl', to: 'toi' }, { from: 'bccl', to: 'et' }, { from: 'bccl', to: 'timesnow' }, { from: 'bccl', to: 'mirchi' },
+
+            // ZEE
+            { from: 'chandra', to: 'zeel' },
+            { from: 'zeel', to: 'zeetv' }, { from: 'zeel', to: 'zeenews' }, { from: 'zeel', to: 'zee5' }, { from: 'zeel', to: 'zeemusic' },
+
+            // SONY
+            { from: 'sony_jp', to: 'sony_in' },
+            { from: 'sony_in', to: 'set' }, { from: 'sony_in', to: 'sonyliv' }, { from: 'sony_in', to: 'sab' },
+
+            // SUN
+            { from: 'maran', to: 'sun_grp' },
+            { from: 'sun_grp', to: 'suntv' }, { from: 'sun_grp', to: 'sunnxt' }, { from: 'sun_grp', to: 'ipl_srh' },
+
+            // TV9
+            { from: 'myhome', to: 'tv9_net' },
+            { from: 'tv9_net', to: 'tv9b' }, { from: 'tv9_net', to: 'tv9t' },
+
+            // STUDIOS
+            { from: 'tseries_own', to: 'tseries' }, { from: 'tseries', to: 't_yt' },
+            { from: 'yrf_own', to: 'yrf' }, { from: 'yrf', to: 'yrf_spy' },
+            { from: 'saregama_own', to: 'saregama' }, { from: 'saregama', to: 'fortune' },
+
+            // PRINT
+            { from: 'db_corp', to: 'bhaskar' },
+            { from: 'jagran_grp', to: 'jagran' },
+            { from: 'ht_grp', to: 'ht_paper' },
+            { from: 'manorama_grp', to: 'manorama' },
+            { from: 'eenadu_grp', to: 'etv' },
+
+            // NEWS
+            { from: 'it_grp', to: 'aajtak' },
+            { from: 'abp_grp', to: 'abp' },
+        ];
+
+        // --- CONFIG ---
+        const container = document.getElementById('mynetwork');
+        const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+        const options = {
+            nodes: { 
+                shape: 'dot', 
+                font: { face: 'Segoe UI', color: 'white', size: 14, strokeWidth: 2, strokeColor: '#000' },
+                borderWidth: 2, shadow: true
+            },
+            groups: {
+                owner: { shape: 'circularImage', size: 40, font: {size: 18} },
+                house: { shape: 'box', color: '#334155', font: {color: 'white'} },
+                news: { color: '#ef4444', shape: 'dot', size: 15 },
+                print: { color: '#10b981', shape: 'dot', size: 15 },
+                movie: { color: '#eab308', shape: 'dot', size: 15 },
+                ott: { color: '#8b5cf6', shape: 'dot', size: 15 },
+                sports: { color: '#f97316', shape: 'dot', size: 15 }
+            },
+            edges: { width: 1, color: { color: '#64748b', opacity: 0.4 }, smooth: true },
+            physics: {
+                barnesHut: { gravitationalConstant: -4000, springLength: 120, springConstant: 0.03 },
+                stabilization: { iterations: 200 }
+            },
+            interaction: { hover: true, tooltipDelay: 100 }
+        };
+
+        const network = new vis.Network(container, data, options);
+
+        // --- INTERACTION: Click to Highlight ---
+        network.on("click", function (params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                const connectedNodes = network.getConnectedNodes(nodeId);
+                const allNodes = data.nodes.getIds();
+                
+                // Dim all nodes
+                const updateArray = allNodes.map(id => {
+                    return { id: id, opacity: 0.1, font: { color: 'rgba(255,255,255,0.1)' } };
+                });
+                
+                // Highlight selected and connected
+                connectedNodes.push(nodeId);
+                connectedNodes.forEach(id => {
+                    const index = updateArray.findIndex(n => n.id === id);
+                    if(index !== -1) {
+                        updateArray[index].opacity = 1;
+                        updateArray[index].font = { color: 'white' };
+                    }
+                });
+                data.nodes.update(updateArray);
+            } else {
+                // Reset
+                const allNodes = data.nodes.getIds();
+                const resetArray = allNodes.map(id => {
+                    return { id: id, opacity: 1, font: { color: 'white' } };
+                });
+                data.nodes.update(resetArray);
+            }
+        });
+    </script>
+</body>
+</html>
