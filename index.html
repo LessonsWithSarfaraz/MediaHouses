@@ -3,268 +3,323 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Media Universe Map</title>
-    
-    <link rel="icon" href="data:,">
+    <title>Indian Media Hierarchy</title>
     
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #0f172a;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        
+        #mynetwork { width: 100%; height: 100vh; background: #ffffff; }
 
-        #mynetwork {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        #loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #38bdf8;
-            font-size: 20px;
-            z-index: 50;
-            pointer-events: none;
-            text-align: center;
-        }
-
-        /* Mobile-friendly Sidebar */
-        .sidebar {
+        /* Sidebar Controls */
+        .controls {
             position: absolute;
             top: 10px;
             left: 10px;
-            width: 200px;
-            background: rgba(15, 23, 42, 0.90);
-            color: white;
+            width: 260px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.95);
             padding: 15px;
-            border-radius: 12px;
-            border: 1px solid #334155;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            z-index: 10;
-            font-size: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            z-index: 100;
+            border: 1px solid #e1e4e8;
         }
 
-        h2 { margin: 0 0 5px 0; font-size: 1rem; color: #38bdf8; }
-        p { margin: 0 0 10px 0; color: #94a3b8; line-height: 1.3; }
+        h2 { font-size: 16px; margin: 0 0 10px 0; color: #1a202c; border-bottom: 2px solid #3182ce; padding-bottom: 5px; }
+        h3 { font-size: 13px; margin: 15px 0 8px 0; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
 
-        .legend-row { display: flex; align-items: center; margin-top: 5px; }
-        .l-box { width: 10px; height: 10px; margin-right: 8px; border-radius: 2px; }
-        .l-circle { width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; border: 1px solid white; }
-
-        /* Recenter Button */
-        .recenter-btn {
-            position: absolute;
-            bottom: 30px;
-            right: 20px;
-            background: #38bdf8;
-            color: #0f172a;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 30px;
-            font-weight: bold;
-            font-size: 14px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-            z-index: 10;
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        
+        label {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            color: #2d3748;
             cursor: pointer;
+            padding: 2px 0;
+        }
+        
+        input[type="checkbox"] { margin-right: 8px; cursor: pointer; accent-color: #3182ce; }
+
+        .badge {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        /* Loading Overlay */
+        #loading {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 200;
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: column;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3; border-top: 4px solid #3498db;
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite; margin-bottom: 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Mobile Toggle */
+        .menu-toggle {
+            display: none;
+            position: absolute; top: 10px; left: 10px; z-index: 101;
+            background: white; border: none; padding: 10px;
+            border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .controls { display: none; top: 50px; }
+            .controls.active { display: block; }
+            .menu-toggle { display: block; }
         }
     </style>
 </head>
 <body>
 
-    <div id="loading">Loading Map...<br><span style="font-size:12px; opacity:0.7">Please wait...</span></div>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div style="color: #555; font-weight: 500;">Building Hierarchy...</div>
+    </div>
 
-    <div class="sidebar">
-        <h2>🇮🇳 Media Universe</h2>
-        <p>Tap nodes to see connections.</p>
-        <div style="border-top: 1px solid #475569; padding-top: 5px;">
-            <div class="legend-row"><div class="l-circle" style="background:#3b82f6"></div>Owners (Big Dots)</div>
-            <div class="legend-row"><div class="l-box" style="background:#334155"></div>Companies (Squares)</div>
-            <div class="legend-row"><div class="l-box" style="background:#ef4444"></div>News</div>
-            <div class="legend-row"><div class="l-box" style="background:#10b981"></div>Print</div>
-            <div class="legend-row"><div class="l-box" style="background:#eab308"></div>Movies/Music</div>
-            <div class="legend-row"><div class="l-box" style="background:#8b5cf6"></div>OTT</div>
+    <button class="menu-toggle" onclick="toggleMenu()"><i class="fas fa-filter"></i> Filters</button>
+
+    <div class="controls" id="sidebar">
+        <h2>📊 Media Hierarchy</h2>
+        
+        <h3>By Category</h3>
+        <div class="filter-group">
+            <label><input type="checkbox" checked onchange="updateFilter()" value="news"> <span class="badge" style="background:#ef4444"></span> News Channels</label>
+            <label><input type="checkbox" checked onchange="updateFilter()" value="print"> <span class="badge" style="background:#10b981"></span> Print Media</label>
+            <label><input type="checkbox" checked onchange="updateFilter()" value="ott"> <span class="badge" style="background:#8b5cf6"></span> OTT / Apps</label>
+            <label><input type="checkbox" checked onchange="updateFilter()" value="movie"> <span class="badge" style="background:#eab308"></span> TV / Movies</label>
+            <label><input type="checkbox" checked onchange="updateFilter()" value="sports"> <span class="badge" style="background:#f97316"></span> Sports</label>
+        </div>
+
+        <h3>By Ownership Group</h3>
+        <div class="filter-group" id="ownerFilters">
+            </div>
+        
+        <div style="margin-top:20px; text-align: center;">
+            <button onclick="network.fit({animation:true})" style="padding: 6px 12px; background: #edf2f7; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer;">Recenter Map</button>
         </div>
     </div>
 
-    <button class="recenter-btn" onclick="fitMap()">🎯 Recenter</button>
-
     <div id="mynetwork"></div>
 
-    <script type="text/javascript">
-        // Wait for window load
-        window.onload = function() {
-            
-            // --- DATASET ---
-            const nodes = [
-                // JIOSTAR
-                { id: 'ambani', label: 'Mukesh Ambani', group: 'owner', color: '#2563EB', size: 50 },
-                { id: 'disney_hq', label: 'Disney', group: 'owner', color: '#2563EB', size: 40 },
-                { id: 'jiostar', label: 'JioStar', group: 'house', size: 35 },
-                { id: 'nw18', label: 'Network18', group: 'house', size: 30 },
-                { id: 'starplus', label: 'Star Plus', group: 'movie' },
-                { id: 'hotstar', label: 'Hotstar', group: 'ott' },
-                { id: 'starsports', label: 'Star Sports', group: 'sports', color: '#f97316' },
-                { id: 'cnn18', label: 'CNN-News18', group: 'news' },
+    <script>
+        // --- 1. THE DATA ---
+        // Each node now has a 'master' property to identify which empire it belongs to.
+        const rawNodes = [
+            // --- RELIANCE / DISNEY (Master: reliance) ---
+            { id: 1, label: 'Reliance\n(Ambani)', group: 'owner', master: 'reliance', level: 0 },
+            { id: 2, label: 'Disney', group: 'owner', master: 'reliance', level: 0 },
+            { id: 3, label: 'JioStar\n(JV)', group: 'house', master: 'reliance', level: 1 },
+            { id: 4, label: 'Network18', group: 'house', master: 'reliance', level: 1 },
+            { id: 11, label: 'Star Plus', group: 'movie', master: 'reliance', level: 2 },
+            { id: 12, label: 'Hotstar', group: 'ott', master: 'reliance', level: 2 },
+            { id: 13, label: 'JioCinema', group: 'ott', master: 'reliance', level: 2 },
+            { id: 14, label: 'Star Sports', group: 'sports', master: 'reliance', level: 2 },
+            { id: 15, label: 'Colors', group: 'movie', master: 'reliance', level: 2 },
+            { id: 16, label: 'CNN-News18', group: 'news', master: 'reliance', level: 2 },
+            { id: 17, label: 'CNBC-TV18', group: 'news', master: 'reliance', level: 2 },
+            { id: 18, label: 'MoneyControl', group: 'print', master: 'reliance', level: 2 },
 
-                // ADANI
-                { id: 'adani', label: 'Gautam Adani', group: 'owner', color: '#059669', size: 50 },
-                { id: 'ndtv_group', label: 'NDTV', group: 'house' },
-                { id: 'ndtv247', label: 'NDTV 24x7', group: 'news' },
-                
-                // TIMES
-                { id: 'jain', label: 'Jain Family', group: 'owner', color: '#DC2626', size: 50 },
-                { id: 'bccl', label: 'Times Group', group: 'house' },
-                { id: 'toi', label: 'Times of India', group: 'print' },
-                { id: 'timesnow', label: 'Times Now', group: 'news' },
+            // --- ADANI (Master: adani) ---
+            { id: 20, label: 'Adani', group: 'owner', master: 'adani', level: 0 },
+            { id: 21, label: 'AMG Media', group: 'house', master: 'adani', level: 1 },
+            { id: 22, label: 'NDTV', group: 'house', master: 'adani', level: 1 },
+            { id: 23, label: 'NDTV 24x7', group: 'news', master: 'adani', level: 2 },
+            { id: 24, label: 'NDTV India', group: 'news', master: 'adani', level: 2 },
+            { id: 25, label: 'NDTV Profit', group: 'news', master: 'adani', level: 2 },
+            { id: 26, label: 'The Quint', group: 'print', master: 'adani', level: 2 },
+            { id: 27, label: 'IANS', group: 'news', master: 'adani', level: 2 },
 
-                // ZEE
-                { id: 'chandra', label: 'Subhash Chandra', group: 'owner', color: '#d97706', size: 45 },
-                { id: 'zeel', label: 'ZEE Ent.', group: 'house' },
-                { id: 'zeetv', label: 'Zee TV', group: 'movie' },
+            // --- TIMES (Master: times) ---
+            { id: 30, label: 'Jain Family', group: 'owner', master: 'times', level: 0 },
+            { id: 31, label: 'Times Group', group: 'house', master: 'times', level: 1 },
+            { id: 32, label: 'Times of India', group: 'print', master: 'times', level: 2 },
+            { id: 33, label: 'Economic Times', group: 'print', master: 'times', level: 2 },
+            { id: 34, label: 'Times Now', group: 'news', master: 'times', level: 2 },
+            { id: 36, label: 'Cricbuzz', group: 'sports', master: 'times', level: 2 },
 
-                // SONY
-                { id: 'sony_in', label: 'Sony India', group: 'house' },
-                { id: 'set', label: 'Sony TV', group: 'movie' },
+            // --- ZEE (Master: zee) ---
+            { id: 40, label: 'S. Chandra', group: 'owner', master: 'zee', level: 0 },
+            { id: 41, label: 'ZEEL', group: 'house', master: 'zee', level: 1 },
+            { id: 42, label: 'Zee TV', group: 'movie', master: 'zee', level: 2 },
+            { id: 43, label: 'Zee News', group: 'news', master: 'zee', level: 2 },
+            { id: 44, label: 'ZEE5', group: 'ott', master: 'zee', level: 2 },
 
-                // SUN
-                { id: 'maran', label: 'Kalanithi Maran', group: 'owner', color: '#7C3AED', size: 45 },
-                { id: 'sun_grp', label: 'Sun Group', group: 'house' },
-                { id: 'suntv', label: 'Sun TV', group: 'movie' },
+            // --- SONY (Master: sony) ---
+            { id: 50, label: 'Sony Global', group: 'owner', master: 'sony', level: 0 },
+            { id: 51, label: 'Culver Max', group: 'house', master: 'sony', level: 1 },
+            { id: 52, label: 'Sony SET', group: 'movie', master: 'sony', level: 2 },
+            { id: 53, label: 'Sony LIV', group: 'ott', master: 'sony', level: 2 },
+            { id: 54, label: 'Ten Sports', group: 'sports', master: 'sony', level: 2 },
 
-                // TV9
-                { id: 'tv9_net', label: 'TV9 Network', group: 'house' },
-                { id: 'tv9b', label: 'TV9 Bharat', group: 'news' },
+            // --- SUN (Master: sun) ---
+            { id: 60, label: 'K. Maran', group: 'owner', master: 'sun', level: 0 },
+            { id: 61, label: 'Sun Group', group: 'house', master: 'sun', level: 1 },
+            { id: 62, label: 'Sun TV', group: 'movie', master: 'sun', level: 2 },
+            { id: 63, label: 'Sun NXT', group: 'ott', master: 'sun', level: 2 },
 
-                // PRINT GIANTS
-                { id: 'bhaskar', label: 'Dainik Bhaskar', group: 'print' },
-                { id: 'jagran', label: 'Dainik Jagran', group: 'print' },
-                { id: 'manorama', label: 'Manorama', group: 'print' }
-            ];
+            // --- INDIA TODAY (Master: indiatoday) ---
+            { id: 70, label: 'Aroon Purie', group: 'owner', master: 'indiatoday', level: 0 },
+            { id: 71, label: 'India Today', group: 'house', master: 'indiatoday', level: 1 },
+            { id: 72, label: 'Aaj Tak', group: 'news', master: 'indiatoday', level: 2 },
 
-            const edges = [
-                { from: 'ambani', to: 'jiostar' }, { from: 'ambani', to: 'nw18' },
-                { from: 'disney_hq', to: 'jiostar' },
-                { from: 'jiostar', to: 'starplus' }, { from: 'jiostar', to: 'hotstar' }, { from: 'jiostar', to: 'starsports' },
-                { from: 'nw18', to: 'cnn18' },
-                { from: 'adani', to: 'ndtv_group' }, { from: 'ndtv_group', to: 'ndtv247' },
-                { from: 'jain', to: 'bccl' }, { from: 'bccl', to: 'toi' }, { from: 'bccl', to: 'timesnow' },
-                { from: 'chandra', to: 'zeel' }, { from: 'zeel', to: 'zeetv' },
-                { from: 'sony_in', to: 'set' },
-                { from: 'maran', to: 'sun_grp' }, { from: 'sun_grp', to: 'suntv' },
-                { from: 'tv9_net', to: 'tv9b' }
-            ];
+            // --- TV9 (Master: tv9) ---
+            { id: 80, label: 'My Home', group: 'owner', master: 'tv9', level: 0 },
+            { id: 81, label: 'TV9 Network', group: 'house', master: 'tv9', level: 1 },
+            { id: 82, label: 'TV9 Bharat', group: 'news', master: 'tv9', level: 2 }
+        ];
 
-            // --- CONFIGURATION ---
-            const container = document.getElementById('mynetwork');
-            const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
-            
-            const options = {
-                nodes: { 
-                    shape: 'dot', 
-                    font: { face: 'sans-serif', color: 'white', size: 14, strokeWidth: 2, strokeColor: '#000' },
-                    borderWidth: 2, 
-                    shadow: true
-                },
-                groups: {
-                    // ERROR FIXED HERE: Changed from 'circularImage' to 'dot'
-                    owner: { shape: 'dot', font: {size: 16} }, 
-                    house: { shape: 'box', color: '#334155', font: {color: 'white'} },
-                    news: { color: '#ef4444', shape: 'dot', size: 15 },
-                    print: { color: '#10b981', shape: 'dot', size: 15 },
-                    movie: { color: '#eab308', shape: 'dot', size: 15 },
-                    ott: { color: '#8b5cf6', shape: 'dot', size: 15 },
-                    sports: { color: '#f97316', shape: 'dot', size: 15 }
-                },
-                edges: { width: 1, color: { color: '#64748b', opacity: 0.5 } },
-                physics: {
-                    // Optimized for Mobile: Prevents explosion
-                    forceAtlas2Based: {
-                        gravitationalConstant: -80,
-                        centralGravity: 0.01,
-                        springConstant: 0.08,
-                        springLength: 100,
-                        damping: 0.4,
-                        avoidOverlap: 0.5
-                    },
-                    solver: 'forceAtlas2Based',
-                    stabilization: {
-                        enabled: true,
-                        iterations: 200, 
-                        updateInterval: 25
-                    }
-                },
-                interaction: { 
-                    hover: true, 
-                    zoomView: true, 
-                    dragView: true 
+        const rawEdges = [
+            // Reliance
+            { from: 1, to: 3 }, { from: 1, to: 4 }, { from: 2, to: 3 },
+            { from: 3, to: 11 }, { from: 3, to: 12 }, { from: 3, to: 13 }, { from: 3, to: 14 },
+            { from: 4, to: 15 }, { from: 4, to: 16 }, { from: 4, to: 17 }, { from: 4, to: 18 },
+            // Adani
+            { from: 20, to: 21 }, { from: 21, to: 22 }, { from: 21, to: 26 }, { from: 21, to: 27 },
+            { from: 22, to: 23 }, { from: 22, to: 24 }, { from: 22, to: 25 },
+            // Times
+            { from: 30, to: 31 }, { from: 31, to: 32 }, { from: 31, to: 33 }, { from: 31, to: 34 }, { from: 31, to: 36 },
+            // Zee
+            { from: 40, to: 41 }, { from: 41, to: 42 }, { from: 41, to: 43 }, { from: 41, to: 44 },
+            // Sony
+            { from: 50, to: 51 }, { from: 51, to: 52 }, { from: 51, to: 53 }, { from: 51, to: 54 },
+            // Sun
+            { from: 60, to: 61 }, { from: 61, to: 62 }, { from: 61, to: 63 },
+            // India Today
+            { from: 70, to: 71 }, { from: 71, to: 72 },
+            // TV9
+            { from: 80, to: 81 }, { from: 81, to: 82 }
+        ];
+
+        // --- 2. SETUP & FILTER LOGIC ---
+        
+        // Define Owners for the Sidebar
+        const masters = [
+            { id: 'reliance', label: 'Reliance & Disney' },
+            { id: 'adani', label: 'Adani Group' },
+            { id: 'times', label: 'Times Group' },
+            { id: 'zee', label: 'Zee' },
+            { id: 'sony', label: 'Sony' },
+            { id: 'sun', label: 'Sun Group' },
+            { id: 'indiatoday', label: 'India Today' },
+            { id: 'tv9', label: 'TV9' }
+        ];
+
+        // Populate sidebar
+        const ownerContainer = document.getElementById('ownerFilters');
+        masters.forEach(m => {
+            const div = document.createElement('div');
+            div.innerHTML = `<label><input type="checkbox" checked onchange="updateFilter()" value="${m.id}" class="owner-check"> ${m.label}</label>`;
+            ownerContainer.appendChild(div);
+        });
+
+        // Vis.js DataSets
+        const nodesDataSet = new vis.DataSet(rawNodes);
+        const edgesDataSet = new vis.DataSet(rawEdges);
+
+        // --- 3. INITIALIZE GRAPH ---
+        const container = document.getElementById('mynetwork');
+        const data = { nodes: nodesDataSet, edges: edgesDataSet };
+        const options = {
+            layout: {
+                hierarchical: {
+                    direction: 'UD', // Up-Down
+                    sortMethod: 'directed',
+                    levelSeparation: 150,
+                    nodeSpacing: 150,
+                    treeSpacing: 200,
+                    blockShifting: true,
+                    edgeMinimization: true,
+                    parentCentralization: true
                 }
-            };
-
-            // Initialize Network
-            window.network = new vis.Network(container, data, options);
-
-            // Force fit to screen when stabilization finishes
-            network.once("stabilizationIterationsDone", function() {
-                document.getElementById('loading').style.display = 'none';
-                network.fit(); 
-            });
-            
-            // Interaction: Click to highlight
-            network.on("click", function (params) {
-                if (params.nodes.length > 0) {
-                    const nodeId = params.nodes[0];
-                    const connectedNodes = network.getConnectedNodes(nodeId);
-                    const allNodes = data.nodes.getIds();
-                    
-                    const updateArray = allNodes.map(id => {
-                        return { id: id, opacity: 0.1, font: { color: 'rgba(255,255,255,0.1)' } };
-                    });
-                    
-                    connectedNodes.push(nodeId);
-                    connectedNodes.forEach(id => {
-                        const index = updateArray.findIndex(n => n.id === id);
-                        if(index !== -1) {
-                            updateArray[index].opacity = 1;
-                            updateArray[index].font = { color: 'white' };
-                        }
-                    });
-                    data.nodes.update(updateArray);
-                } else {
-                    const allNodes = data.nodes.getIds();
-                    const resetArray = allNodes.map(id => {
-                        return { id: id, opacity: 1, font: { color: 'white' } };
-                    });
-                    data.nodes.update(resetArray);
-                }
-            });
-
-            // Handle Resize
-            window.addEventListener('resize', function() {
-                network.fit();
-            });
+            },
+            nodes: {
+                shape: 'box',
+                font: { face: 'Segoe UI', color: 'white', size: 14 },
+                margin: 10,
+                borderWidth: 0,
+                shadow: true
+            },
+            groups: {
+                owner: { color: '#2d3748', shape: 'box', font: {size: 16, color: '#fff'} }, // Dark Grey
+                house: { color: '#4a5568', shape: 'box' }, // Medium Grey
+                news: { color: '#ef4444', shape: 'ellipse' }, // Red
+                print: { color: '#10b981', shape: 'ellipse' }, // Green
+                movie: { color: '#eab308', shape: 'ellipse' }, // Yellow
+                ott: { color: '#8b5cf6', shape: 'ellipse' }, // Purple
+                sports: { color: '#f97316', shape: 'ellipse' } // Orange
+            },
+            edges: {
+                color: { color: '#cbd5e0' },
+                width: 1.5,
+                smooth: { type: 'cubicBezier', forceDirection: 'vertical', roundness: 0.4 },
+                arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+            },
+            physics: false, // Hierarchical layout works best without physics
+            interaction: {
+                hover: true,
+                tooltipDelay: 200,
+                zoomView: true,
+                dragView: true
+            }
         };
 
-        function fitMap() {
-            if(window.network) {
-                window.network.fit({ 
-                    animation: { duration: 1000, easingFunction: 'easeInOutQuad' } 
-                });
-            }
+        const network = new vis.Network(container, data, options);
+
+        // Remove loading screen when ready
+        network.once("afterDrawing", function() {
+            document.getElementById('loading').style.display = 'none';
+            network.fit();
+        });
+
+        // --- 4. FILTER FUNCTION ---
+        function updateFilter() {
+            // Get selected categories
+            const typeCheckboxes = document.querySelectorAll('input[type="checkbox"]:not(.owner-check)');
+            const activeTypes = Array.from(typeCheckboxes).filter(c => c.checked).map(c => c.value);
+
+            // Get selected owners
+            const ownerCheckboxes = document.querySelectorAll('.owner-check');
+            const activeOwners = Array.from(ownerCheckboxes).filter(c => c.checked).map(c => c.value);
+
+            // Filter logic
+            const filteredNodes = rawNodes.filter(node => {
+                // 1. Check Owner
+                if (!activeOwners.includes(node.master)) return false;
+
+                // 2. Check Type (If it's an asset node)
+                // We always show 'owner' and 'house' nodes to keep the tree structure alive,
+                // unless the specific owner is hidden (handled by step 1).
+                if (['owner', 'house'].includes(node.group)) return true;
+                
+                // If it's a leaf node (channel/paper), check if its category is active
+                return activeTypes.includes(node.group);
+            });
+
+            // Update graph
+            nodesDataSet.clear();
+            nodesDataSet.add(filteredNodes);
+            
+            // Re-fit graph to view
+            network.fit({ animation: true });
         }
+
+        // --- 5. MOBILE MENU ---
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
     </script>
 </body>
 </html>
