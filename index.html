@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Media Universe Map</title>
     
+    <link rel="icon" href="data:,">
+    
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
     
     <style>
@@ -13,7 +15,7 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden; /* Prevents scrollbars */
+            overflow: hidden;
             background-color: #0f172a;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
@@ -36,6 +38,7 @@
             font-size: 20px;
             z-index: 50;
             pointer-events: none;
+            text-align: center;
         }
 
         /* Mobile-friendly Sidebar */
@@ -43,8 +46,8 @@
             position: absolute;
             top: 10px;
             left: 10px;
-            width: 200px; /* Smaller for mobile */
-            background: rgba(15, 23, 42, 0.85); /* Semi-transparent dark */
+            width: 200px;
+            background: rgba(15, 23, 42, 0.90);
             color: white;
             padding: 15px;
             border-radius: 12px;
@@ -65,15 +68,16 @@
         /* Recenter Button */
         .recenter-btn {
             position: absolute;
-            bottom: 20px;
+            bottom: 30px;
             right: 20px;
             background: #38bdf8;
             color: #0f172a;
             border: none;
-            padding: 10px 15px;
-            border-radius: 25px;
+            padding: 12px 20px;
+            border-radius: 30px;
             font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
             z-index: 10;
             cursor: pointer;
         }
@@ -81,14 +85,14 @@
 </head>
 <body>
 
-    <div id="loading">Loading Map...</div>
+    <div id="loading">Loading Map...<br><span style="font-size:12px; opacity:0.7">Please wait...</span></div>
 
     <div class="sidebar">
         <h2>🇮🇳 Media Universe</h2>
-        <p>Tap nodes to highlight connections.</p>
+        <p>Tap nodes to see connections.</p>
         <div style="border-top: 1px solid #475569; padding-top: 5px;">
-            <div class="legend-row"><div class="l-circle" style="background:#3b82f6"></div>Owners</div>
-            <div class="legend-row"><div class="l-box" style="background:#334155"></div>Companies</div>
+            <div class="legend-row"><div class="l-circle" style="background:#3b82f6"></div>Owners (Big Dots)</div>
+            <div class="legend-row"><div class="l-box" style="background:#334155"></div>Companies (Squares)</div>
             <div class="legend-row"><div class="l-box" style="background:#ef4444"></div>News</div>
             <div class="legend-row"><div class="l-box" style="background:#10b981"></div>Print</div>
             <div class="legend-row"><div class="l-box" style="background:#eab308"></div>Movies/Music</div>
@@ -101,14 +105,14 @@
     <div id="mynetwork"></div>
 
     <script type="text/javascript">
-        // Wait for window load to ensure library is ready
-        window.addEventListener('load', function() {
+        // Wait for window load
+        window.onload = function() {
             
-            // --- DATASET (Same as before) ---
+            // --- DATASET ---
             const nodes = [
                 // JIOSTAR
-                { id: 'ambani', label: 'Mukesh Ambani', group: 'owner', color: '#2563EB', size: 40 },
-                { id: 'disney_hq', label: 'Disney', group: 'owner', color: '#2563EB', size: 30 },
+                { id: 'ambani', label: 'Mukesh Ambani', group: 'owner', color: '#2563EB', size: 50 },
+                { id: 'disney_hq', label: 'Disney', group: 'owner', color: '#2563EB', size: 40 },
                 { id: 'jiostar', label: 'JioStar', group: 'house', size: 35 },
                 { id: 'nw18', label: 'Network18', group: 'house', size: 30 },
                 { id: 'starplus', label: 'Star Plus', group: 'movie' },
@@ -117,18 +121,18 @@
                 { id: 'cnn18', label: 'CNN-News18', group: 'news' },
 
                 // ADANI
-                { id: 'adani', label: 'Gautam Adani', group: 'owner', color: '#059669', size: 40 },
+                { id: 'adani', label: 'Gautam Adani', group: 'owner', color: '#059669', size: 50 },
                 { id: 'ndtv_group', label: 'NDTV', group: 'house' },
                 { id: 'ndtv247', label: 'NDTV 24x7', group: 'news' },
                 
                 // TIMES
-                { id: 'jain', label: 'Jain Family', group: 'owner', color: '#DC2626', size: 40 },
+                { id: 'jain', label: 'Jain Family', group: 'owner', color: '#DC2626', size: 50 },
                 { id: 'bccl', label: 'Times Group', group: 'house' },
                 { id: 'toi', label: 'Times of India', group: 'print' },
                 { id: 'timesnow', label: 'Times Now', group: 'news' },
 
                 // ZEE
-                { id: 'chandra', label: 'Subhash Chandra', group: 'owner', color: '#d97706', size: 35 },
+                { id: 'chandra', label: 'Subhash Chandra', group: 'owner', color: '#d97706', size: 45 },
                 { id: 'zeel', label: 'ZEE Ent.', group: 'house' },
                 { id: 'zeetv', label: 'Zee TV', group: 'movie' },
 
@@ -137,7 +141,7 @@
                 { id: 'set', label: 'Sony TV', group: 'movie' },
 
                 // SUN
-                { id: 'maran', label: 'Kalanithi Maran', group: 'owner', color: '#7C3AED', size: 35 },
+                { id: 'maran', label: 'Kalanithi Maran', group: 'owner', color: '#7C3AED', size: 45 },
                 { id: 'sun_grp', label: 'Sun Group', group: 'house' },
                 { id: 'suntv', label: 'Sun TV', group: 'movie' },
 
@@ -176,7 +180,8 @@
                     shadow: true
                 },
                 groups: {
-                    owner: { shape: 'circularImage', size: 40, font: {size: 16} },
+                    // ERROR FIXED HERE: Changed from 'circularImage' to 'dot'
+                    owner: { shape: 'dot', font: {size: 16} }, 
                     house: { shape: 'box', color: '#334155', font: {color: 'white'} },
                     news: { color: '#ef4444', shape: 'dot', size: 15 },
                     print: { color: '#10b981', shape: 'dot', size: 15 },
@@ -188,7 +193,7 @@
                 physics: {
                     // Optimized for Mobile: Prevents explosion
                     forceAtlas2Based: {
-                        gravitationalConstant: -100,
+                        gravitationalConstant: -80,
                         centralGravity: 0.01,
                         springConstant: 0.08,
                         springLength: 100,
@@ -198,7 +203,7 @@
                     solver: 'forceAtlas2Based',
                     stabilization: {
                         enabled: true,
-                        iterations: 200, // Stabilize before showing
+                        iterations: 200, 
                         updateInterval: 25
                     }
                 },
@@ -215,7 +220,7 @@
             // Force fit to screen when stabilization finishes
             network.once("stabilizationIterationsDone", function() {
                 document.getElementById('loading').style.display = 'none';
-                network.fit(); // This forces the graph into the view
+                network.fit(); 
             });
             
             // Interaction: Click to highlight
@@ -251,9 +256,8 @@
             window.addEventListener('resize', function() {
                 network.fit();
             });
-        });
+        };
 
-        // Global function for the button
         function fitMap() {
             if(window.network) {
                 window.network.fit({ 
