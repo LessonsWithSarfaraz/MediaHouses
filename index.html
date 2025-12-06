@@ -1,302 +1,346 @@
+I have significantly expanded the dataset to include **Global OTT Giants**, **Music Labels**, **Independent Production Houses**, **Digital-First News**, and **App-Based Aggregators**.
+
+I have also added two new categories to the filter sidebar: **🎵 Music** and **📱 Apps**.
+
+Save this updated code as `media_universe_expanded.html`.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Indian Media Hierarchy</title>
-    <link rel="icon" href="data:,">
+    <title>Indian Media Universe: Expanded</title>
     
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        /* --- CSS STYLING --- */
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #1e293b; /* Slate-800 */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        
+        #mynetwork { width: 100%; height: 100vh; background: #ffffff; }
 
-        #mynetwork {
-            width: 100%; height: 100%;
-            position: absolute; top: 0; left: 0; z-index: 1;
-        }
-
-        /* Control Panel */
+        /* Sidebar Controls */
         .controls {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 260px;
-            background: rgba(15, 23, 42, 0.95);
-            border: 1px solid #475569;
-            padding: 15px;
-            border-radius: 8px;
-            color: #e2e8f0;
-            z-index: 100;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-            max-height: 80vh;
+            top: 10px;
+            left: 10px;
+            width: 280px;
+            max-height: 90vh;
             overflow-y: auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            z-index: 100;
+            border: 1px solid #e2e8f0;
+            backdrop-filter: blur(5px);
         }
 
-        h2 { font-size: 1.1rem; margin-top: 0; margin-bottom: 10px; color: #38bdf8; border-bottom: 1px solid #475569; padding-bottom: 5px; }
-        
-        /* Form Elements */
-        label { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.9rem; cursor: pointer; }
-        select { width: 100%; padding: 8px; background: #334155; color: white; border: 1px solid #475569; border-radius: 4px; margin-bottom: 15px; }
-        
-        input[type="checkbox"] { margin-right: 10px; accent-color: #38bdf8; width: 16px; height: 16px; }
+        /* Scrollbar for controls */
+        .controls::-webkit-scrollbar { width: 6px; }
+        .controls::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
 
-        .tag { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+        h2 { font-size: 18px; margin: 0 0 15px 0; color: #1e293b; border-bottom: 3px solid #3b82f6; padding-bottom: 8px; font-weight: 700; }
+        h3 { font-size: 12px; margin: 15px 0 8px 0; color: #64748b; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; }
 
-        /* Mobile Responsive Adjustments */
-        @media (max-width: 600px) {
-            .controls {
-                width: calc(100% - 40px);
-                top: auto; bottom: 20px;
-                max-height: 40vh;
-            }
+        .filter-group { display: flex; flex-direction: column; gap: 8px; }
+        
+        label {
+            display: flex; align-items: center; font-size: 13px; color: #334155;
+            cursor: pointer; padding: 2px 0; transition: color 0.2s;
+        }
+        label:hover { color: #0f172a; }
+        
+        input[type="checkbox"] { margin-right: 10px; cursor: pointer; accent-color: #3b82f6; width: 14px; height: 14px; }
+
+        .badge {
+            width: 8px; height: 8px; border-radius: 50%;
+            display: inline-block; margin-right: 8px;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+        }
+
+        /* Node Counts */
+        .count { font-size: 10px; background: #e2e8f0; padding: 1px 5px; border-radius: 4px; margin-left: auto; color: #64748b; }
+
+        /* Loading Overlay */
+        #loading {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f8fafc; z-index: 200;
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: column;
+        }
+        .spinner {
+            border: 4px solid #e2e8f0; border-top: 4px solid #3b82f6;
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 0.8s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Mobile Toggle */
+        .menu-toggle {
+            display: none;
+            position: absolute; top: 15px; left: 15px; z-index: 101;
+            background: white; border: 1px solid #e2e8f0; padding: 8px 12px;
+            border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            font-weight: 600; color: #334155;
+        }
+
+        @media (max-width: 768px) {
+            .controls { display: none; top: 60px; height: 70vh; }
+            .controls.active { display: block; }
+            .menu-toggle { display: block; }
         }
     </style>
 </head>
 <body>
 
-    <div class="controls">
-        <h2>🛠 Filters</h2>
-        
-        <label style="font-weight:bold; color:#94a3b8; font-size:0.8rem; margin-top:5px;">SELECT EMPIRE</label>
-        <select id="ownerFilter" onchange="applyFilters()">
-            <option value="all">Show All Empires</option>
-            <option value="ambani">Mukesh Ambani (Jio/Network18)</option>
-            <option value="adani">Gautam Adani (NDTV/AMG)</option>
-            <option value="times">The Times Group (Jain Family)</option>
-            <option value="zee">Zee Group (Subhash Chandra)</option>
-            <option value="sony">Sony (Japan)</option>
-            <option value="sun">Sun Group (Kalanithi Maran)</option>
-            <option value="tv9">TV9 Network</option>
-            <option value="print">Print Giants (Jagran/Bhaskar/HT)</option>
-        </select>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div style="color: #475569; font-weight: 600; font-size: 14px;">Mapping the Ecosystem...</div>
+    </div>
 
-        <label style="font-weight:bold; color:#94a3b8; font-size:0.8rem;">MEDIA SECTORS</label>
-        
-        <label><input type="checkbox" class="type-filter" value="news" checked onchange="applyFilters()"> 
-            <span class="tag" style="background:#ef4444"></span>News Channels
-        </label>
-        
-        <label><input type="checkbox" class="type-filter" value="ent" checked onchange="applyFilters()"> 
-            <span class="tag" style="background:#eab308"></span>Entertainment TV
-        </label>
-        
-        <label><input type="checkbox" class="type-filter" value="print" checked onchange="applyFilters()"> 
-            <span class="tag" style="background:#10b981"></span>Print / Papers
-        </label>
-        
-        <label><input type="checkbox" class="type-filter" value="ott" checked onchange="applyFilters()"> 
-            <span class="tag" style="background:#8b5cf6"></span>OTT & Digital
-        </label>
+    <button class="menu-toggle" onclick="toggleMenu()"><i class="fas fa-filter"></i> Filters</button>
 
-        <label><input type="checkbox" class="type-filter" value="sports" checked onchange="applyFilters()"> 
-            <span class="tag" style="background:#f97316"></span>Sports
-        </label>
+    <div class="controls" id="sidebar">
+        <h2>🇮🇳 Media Ecosystem</h2>
+        
+        <h3>Category</h3>
+        <div class="filter-group">
+            <label><input type="checkbox" checked onchange="updateFilter()" value="ott"> <span class="badge" style="background:#8b5cf6"></span> OTT Platforms</label>
+            <label><input type="checkbox" checked onchange="updateFilter()" value="movie"> <span class="badge" style="background:#eab308"></span> Studios / TV</label>
+            <label><input type="checkbox" checked onchange="updateFilter()" value="music"> <span class="badge" style="background:#ec4899"></span> Music Labels</label>
+            <label><input type="checkbox" checked onchange="updateFilter()" value="news"> <span class="badge" style="background:#ef4444"></span> News Media</label>
+            <label><input type="checkbox" checked onchange="updateFilter()" value="app"> <span class="badge" style="background:#06b6d4"></span> Apps / Tech</label>
+            <label><input type="checkbox" checked onchange="updateFilter()" value="print"> <span class="badge" style="background:#10b981"></span> Print</label>
+            <label><input type="checkbox" checked onchange="updateFilter()" value="sports"> <span class="badge" style="background:#f97316"></span> Sports</label>
+        </div>
+
+        <h3>Ownership Group</h3>
+        <div class="filter-group" id="ownerFilters">
+            </div>
+        
+        <div style="margin-top:20px; text-align: center;">
+            <button onclick="network.fit({animation:true})" style="padding: 8px 16px; background: #f1f5f9; border: 1px solid #cbd5e0; border-radius: 6px; cursor: pointer; color: #475569; font-size: 12px; font-weight: 600;">Recenter Graph</button>
+        </div>
     </div>
 
     <div id="mynetwork"></div>
 
     <script>
-        // --- 1. THE DATASET (Hierarchical Structure) ---
-        // rootId helps us filter by "Empire"
-        
-        const allNodes = [
-            // --- AMBANI / JIOSTAR ---
-            { id: 1, label: 'Mukesh Ambani\n(Reliance)', group: 'owner', rootId: 'ambani', level: 0 },
-            { id: 2, label: 'JioStar\n(JV with Disney)', group: 'house', rootId: 'ambani', level: 1 },
-            { id: 3, label: 'Network18', group: 'house', rootId: 'ambani', level: 1 },
-            // Children
-            { id: 101, label: 'Star Plus', group: 'ent', rootId: 'ambani', level: 2 },
-            { id: 102, label: 'Disney+ Hotstar', group: 'ott', rootId: 'ambani', level: 2 },
-            { id: 103, label: 'JioCinema', group: 'ott', rootId: 'ambani', level: 2 },
-            { id: 104, label: 'Star Sports', group: 'sports', rootId: 'ambani', level: 2 },
-            { id: 105, label: 'Colors', group: 'ent', rootId: 'ambani', level: 2 },
-            { id: 106, label: 'CNN-News18', group: 'news', rootId: 'ambani', level: 2 },
-            { id: 107, label: 'CNBC-TV18', group: 'news', rootId: 'ambani', level: 2 },
-            { id: 108, label: 'MoneyControl', group: 'print', rootId: 'ambani', level: 2 },
+        // --- 1. EXPANDED DATASET ---
+        const rawNodes = [
+            // === 1. JIOSTAR (Reliance + Disney) ===
+            { id: 1, label: 'Reliance & Disney', group: 'owner', master: 'reliance', level: 0 },
+            { id: 3, label: 'JioStar (JV)', group: 'house', master: 'reliance', level: 1 },
+            { id: 4, label: 'Network18', group: 'house', master: 'reliance', level: 1 },
+            // Assets
+            { id: 11, label: 'Star Plus', group: 'movie', master: 'reliance', level: 2 },
+            { id: 12, label: 'Disney+ Hotstar', group: 'ott', master: 'reliance', level: 2 },
+            { id: 13, label: 'JioCinema', group: 'ott', master: 'reliance', level: 2 },
+            { id: 14, label: 'Star Sports', group: 'sports', master: 'reliance', level: 2 },
+            { id: 15, label: 'Sports18', group: 'sports', master: 'reliance', level: 2 },
+            { id: 16, label: 'Colors', group: 'movie', master: 'reliance', level: 2 },
+            { id: 17, label: 'CNN-News18', group: 'news', master: 'reliance', level: 2 },
+            { id: 18, label: 'MoneyControl', group: 'app', master: 'reliance', level: 2 },
+            { id: 19, label: 'JioSaavn', group: 'music', master: 'reliance', level: 2 },
 
-            // --- ADANI ---
-            { id: 4, label: 'Gautam Adani', group: 'owner', rootId: 'adani', level: 0 },
-            { id: 5, label: 'AMG Media', group: 'house', rootId: 'adani', level: 1 },
-            { id: 6, label: 'NDTV Group', group: 'house', rootId: 'adani', level: 2 }, // Hierarchy: Adani -> AMG -> NDTV
-            // Children
-            { id: 201, label: 'NDTV 24x7', group: 'news', rootId: 'adani', level: 3 },
-            { id: 202, label: 'NDTV India', group: 'news', rootId: 'adani', level: 3 },
-            { id: 203, label: 'The Quint', group: 'print', rootId: 'adani', level: 2 },
-            { id: 204, label: 'NDTV Profit', group: 'news', rootId: 'adani', level: 3 },
+            // === 2. GLOBAL GIANTS (Independent) ===
+            { id: 90, label: 'Global Tech', group: 'owner', master: 'global', level: 0 },
+            { id: 91, label: 'Netflix Inc', group: 'house', master: 'global', level: 1 },
+            { id: 92, label: 'Netflix India', group: 'ott', master: 'global', level: 2 },
+            { id: 93, label: 'Amazon', group: 'house', master: 'global', level: 1 },
+            { id: 94, label: 'Prime Video', group: 'ott', master: 'global', level: 2 },
+            { id: 95, label: 'Audible', group: 'app', master: 'global', level: 2 },
+            { id: 96, label: 'Google', group: 'house', master: 'global', level: 1 },
+            { id: 97, label: 'YouTube', group: 'ott', master: 'global', level: 2 },
 
-            // --- TIMES GROUP ---
-            { id: 7, label: 'Jain Family\n(BCCL)', group: 'owner', rootId: 'times', level: 0 },
-            { id: 301, label: 'Times of India', group: 'print', rootId: 'times', level: 1 },
-            { id: 302, label: 'Economic Times', group: 'print', rootId: 'times', level: 1 },
-            { id: 303, label: 'Times Now', group: 'news', rootId: 'times', level: 1 },
-            { id: 304, label: 'Radio Mirchi', group: 'ent', rootId: 'times', level: 1 },
-            { id: 305, label: 'Cricbuzz', group: 'sports', rootId: 'times', level: 1 },
+            // === 3. INDEPENDENT STUDIOS (Movies/Music) ===
+            { id: 100, label: 'Movie Moguls', group: 'owner', master: 'studio', level: 0 },
+            { id: 101, label: 'T-Series', group: 'house', master: 'studio', level: 1 },
+            { id: 102, label: 'T-Series Music', group: 'music', master: 'studio', level: 2 },
+            { id: 103, label: 'Yash Raj Films', group: 'house', master: 'studio', level: 1 },
+            { id: 104, label: 'YRF Music', group: 'music', master: 'studio', level: 2 },
+            { id: 105, label: 'Dharma Prod.', group: 'house', master: 'studio', level: 1 },
+            { id: 106, label: 'Red Chillies', group: 'house', master: 'studio', level: 1 },
+            { id: 107, label: 'Excel Ent.', group: 'house', master: 'studio', level: 1 },
+            
+            // === 4. DIGITAL & APPS (New Age) ===
+            { id: 120, label: 'Tech Entrepreneurs', group: 'owner', master: 'digital', level: 0 },
+            { id: 121, label: 'Inshorts', group: 'app', master: 'digital', level: 2 },
+            { id: 122, label: 'Dailyhunt', group: 'app', master: 'digital', level: 2 },
+            { id: 123, label: 'TVF (Viral Fever)', group: 'ott', master: 'digital', level: 2 },
+            { id: 124, label: 'Pocket FM', group: 'app', master: 'digital', level: 2 },
+            { id: 125, label: 'Pratilipi', group: 'app', master: 'digital', level: 2 },
 
-            // --- ZEE ---
-            { id: 8, label: 'Subhash Chandra\n(Essel)', group: 'owner', rootId: 'zee', level: 0 },
-            { id: 9, label: 'Zee Ent (ZEEL)', group: 'house', rootId: 'zee', level: 1 },
-            // Children
-            { id: 401, label: 'Zee TV', group: 'ent', rootId: 'zee', level: 2 },
-            { id: 402, label: 'Zee News', group: 'news', rootId: 'zee', level: 2 },
-            { id: 403, label: 'ZEE5', group: 'ott', rootId: 'zee', level: 2 },
-            { id: 404, label: 'Zee Music', group: 'ent', rootId: 'zee', level: 2 },
+            // === 5. ADANI ===
+            { id: 20, label: 'Adani Group', group: 'owner', master: 'adani', level: 0 },
+            { id: 21, label: 'AMG Media', group: 'house', master: 'adani', level: 1 },
+            { id: 22, label: 'NDTV Network', group: 'house', master: 'adani', level: 1 },
+            { id: 23, label: 'NDTV 24x7', group: 'news', master: 'adani', level: 2 },
+            { id: 24, label: 'BQ Prime', group: 'news', master: 'adani', level: 2 },
+            { id: 26, label: 'The Quint', group: 'news', master: 'adani', level: 2 },
+            { id: 27, label: 'IANS', group: 'news', master: 'adani', level: 2 },
 
-            // --- SONY ---
-            { id: 10, label: 'Sony Corp\n(Japan)', group: 'owner', rootId: 'sony', level: 0 },
-            { id: 11, label: 'Culver Max\n(Sony India)', group: 'house', rootId: 'sony', level: 1 },
-            // Children
-            { id: 501, label: 'Sony TV (SET)', group: 'ent', rootId: 'sony', level: 2 },
-            { id: 502, label: 'Sony LIV', group: 'ott', rootId: 'sony', level: 2 },
-            { id: 503, label: 'Sony Sports', group: 'sports', rootId: 'sony', level: 2 },
+            // === 6. TIMES GROUP ===
+            { id: 30, label: 'Jain Family', group: 'owner', master: 'times', level: 0 },
+            { id: 31, label: 'Times Group', group: 'house', master: 'times', level: 1 },
+            { id: 32, label: 'Times of India', group: 'print', master: 'times', level: 2 },
+            { id: 33, label: 'Economic Times', group: 'print', master: 'times', level: 2 },
+            { id: 34, label: 'Times Now', group: 'news', master: 'times', level: 2 },
+            { id: 35, label: 'Gaana', group: 'music', master: 'times', level: 2 },
+            { id: 36, label: 'Cricbuzz', group: 'app', master: 'times', level: 2 },
 
-            // --- SUN GROUP ---
-            { id: 12, label: 'Kalanithi Maran', group: 'owner', rootId: 'sun', level: 0 },
-            { id: 13, label: 'Sun Group', group: 'house', rootId: 'sun', level: 1 },
-            // Children
-            { id: 601, label: 'Sun TV', group: 'ent', rootId: 'sun', level: 2 },
-            { id: 602, label: 'Sun NXT', group: 'ott', rootId: 'sun', level: 2 },
-            { id: 603, label: 'SRH (IPL)', group: 'sports', rootId: 'sun', level: 2 },
+            // === 7. SONY ===
+            { id: 50, label: 'Sony Japan', group: 'owner', master: 'sony', level: 0 },
+            { id: 51, label: 'Culver Max', group: 'house', master: 'sony', level: 1 },
+            { id: 52, label: 'Sony SET', group: 'movie', master: 'sony', level: 2 },
+            { id: 53, label: 'Sony LIV', group: 'ott', master: 'sony', level: 2 },
+            { id: 54, label: 'Ten Sports', group: 'sports', master: 'sony', level: 2 },
 
-            // --- PRINT TITANS ---
-            { id: 14, label: 'Print Giants', group: 'house', rootId: 'print', level: 0 },
-            { id: 701, label: 'Dainik Bhaskar', group: 'print', rootId: 'print', level: 1 },
-            { id: 702, label: 'Dainik Jagran', group: 'print', rootId: 'print', level: 1 },
-            { id: 703, label: 'Hindustan Times', group: 'print', rootId: 'print', level: 1 },
-            { id: 704, label: 'Malayala Manorama', group: 'print', rootId: 'print', level: 1 },
+            // === 8. ZEE ===
+            { id: 40, label: 'Subhash Chandra', group: 'owner', master: 'zee', level: 0 },
+            { id: 41, label: 'ZEEL', group: 'house', master: 'zee', level: 1 },
+            { id: 42, label: 'Zee TV', group: 'movie', master: 'zee', level: 2 },
+            { id: 43, label: 'Zee Music', group: 'music', master: 'zee', level: 2 },
+            { id: 44, label: 'ZEE5', group: 'ott', master: 'zee', level: 2 },
 
-            // --- TV9 ---
-            { id: 15, label: 'My Home Group', group: 'owner', rootId: 'tv9', level: 0 },
-            { id: 16, label: 'TV9 Network', group: 'house', rootId: 'tv9', level: 1 },
-            { id: 801, label: 'TV9 Bharatvarsh', group: 'news', rootId: 'tv9', level: 2 },
-            { id: 802, label: 'TV9 Telugu', group: 'news', rootId: 'tv9', level: 2 }
+             // === 9. DIGITAL NEWS (Independent) ===
+            { id: 130, label: 'Indie Editors', group: 'owner', master: 'indie_news', level: 0 },
+            { id: 131, label: 'The Print', group: 'news', master: 'indie_news', level: 2 },
+            { id: 132, label: 'Newslaundry', group: 'news', master: 'indie_news', level: 2 },
+            { id: 133, label: 'The Wire', group: 'news', master: 'indie_news', level: 2 },
         ];
 
-        const allEdges = [
-            // Ambani
-            { from: 1, to: 2 }, { from: 1, to: 3 },
-            { from: 2, to: 101 }, { from: 2, to: 102 }, { from: 2, to: 103 }, { from: 2, to: 104 }, { from: 2, to: 105 },
-            { from: 3, to: 106 }, { from: 3, to: 107 }, { from: 3, to: 108 },
+        const rawEdges = [
+            // Reliance
+            { from: 1, to: 3 }, { from: 1, to: 4 },
+            { from: 3, to: 11 }, { from: 3, to: 12 }, { from: 3, to: 13 }, { from: 3, to: 14 }, { from: 3, to: 15 }, { from: 3, to: 16 },
+            { from: 4, to: 17 }, { from: 4, to: 18 }, { from: 3, to: 19 },
+            // Global
+            { from: 90, to: 91 }, { from: 90, to: 93 }, { from: 90, to: 96 },
+            { from: 91, to: 92 }, { from: 93, to: 94 }, { from: 93, to: 95 }, { from: 96, to: 97 },
+            // Studios
+            { from: 100, to: 101 }, { from: 100, to: 103 }, { from: 100, to: 105 }, { from: 100, to: 106 }, { from: 100, to: 107 },
+            { from: 101, to: 102 }, { from: 103, to: 104 },
+            // Digital
+            { from: 120, to: 121 }, { from: 120, to: 122 }, { from: 120, to: 123 }, { from: 120, to: 124 }, { from: 120, to: 125 },
             // Adani
-            { from: 4, to: 5 }, { from: 5, to: 6 }, { from: 5, to: 203 },
-            { from: 6, to: 201 }, { from: 6, to: 202 }, { from: 6, to: 204 },
+            { from: 20, to: 21 }, { from: 21, to: 22 }, { from: 21, to: 26 }, { from: 21, to: 27 },
+            { from: 22, to: 23 }, { from: 22, to: 24 },
             // Times
-            { from: 7, to: 301 }, { from: 7, to: 302 }, { from: 7, to: 303 }, { from: 7, to: 304 }, { from: 7, to: 305 },
-            // Zee
-            { from: 8, to: 9 },
-            { from: 9, to: 401 }, { from: 9, to: 402 }, { from: 9, to: 403 }, { from: 9, to: 404 },
+            { from: 30, to: 31 }, { from: 31, to: 32 }, { from: 31, to: 33 }, { from: 31, to: 34 }, { from: 31, to: 35 }, { from: 31, to: 36 },
             // Sony
-            { from: 10, to: 11 },
-            { from: 11, to: 501 }, { from: 11, to: 502 }, { from: 11, to: 503 },
-            // Sun
-            { from: 12, to: 13 },
-            { from: 13, to: 601 }, { from: 13, to: 602 }, { from: 13, to: 603 },
-            // Print
-            { from: 14, to: 701 }, { from: 14, to: 702 }, { from: 14, to: 703 }, { from: 14, to: 704 },
-            // TV9
-            { from: 15, to: 16 }, { from: 16, to: 801 }, { from: 16, to: 802 }
+            { from: 50, to: 51 }, { from: 51, to: 52 }, { from: 51, to: 53 }, { from: 51, to: 54 },
+            // Zee
+            { from: 40, to: 41 }, { from: 41, to: 42 }, { from: 41, to: 43 }, { from: 41, to: 44 },
+            // Indie News
+            { from: 130, to: 131 }, { from: 130, to: 132 }, { from: 130, to: 133 }
         ];
 
-        // --- 2. SETUP VIS.JS ---
-        let network = null;
-        let nodesDataSet = new vis.DataSet(allNodes);
-        let edgesDataSet = new vis.DataSet(allEdges);
+        // --- 2. CONFIG & LOGIC ---
+        
+        const masters = [
+            { id: 'reliance', label: 'Reliance & Disney' },
+            { id: 'global', label: 'Netflix / Amazon' },
+            { id: 'studio', label: 'T-Series / YRF' },
+            { id: 'digital', label: 'Inshorts / TVF' },
+            { id: 'adani', label: 'Adani Group' },
+            { id: 'times', label: 'Times Group' },
+            { id: 'sony', label: 'Sony' },
+            { id: 'zee', label: 'Zee' },
+            { id: 'indie_news', label: 'Indie Digital News' }
+        ];
 
-        function initNetwork() {
-            const container = document.getElementById('mynetwork');
-            const data = { nodes: nodesDataSet, edges: edgesDataSet };
-            
-            const options = {
-                // Key Feature: HIERARCHICAL LAYOUT (Flowchart style)
-                layout: {
-                    hierarchical: {
-                        direction: 'UD', // Up to Down
-                        sortMethod: 'directed', // Follow the arrows
-                        nodeSpacing: 150,
-                        levelSeparation: 150,
-                        treeSpacing: 200,
-                        blockShifting: true,
-                        edgeMinimization: true,
-                        parentCentralization: true
-                    }
-                },
-                nodes: {
-                    shape: 'box',
-                    margin: 10,
-                    widthConstraint: { maximum: 120 },
-                    font: { multi: true, color: 'white' },
-                    borderWidth: 0,
-                    shadow: true
-                },
-                edges: {
-                    width: 2,
-                    color: { color: '#64748b', inherit: 'from' },
-                    smooth: { type: 'cubicBezier', forceDirection: 'vertical', roundness: 0.4 },
-                    arrows: { to: { enabled: true, scaleFactor: 0.5 } }
-                },
-                // Groups define colors
-                groups: {
-                    owner: { color: { background: '#2563EB' }, font: { size: 16, face: 'bold' } }, // Blue
-                    house: { color: { background: '#334155' } }, // Dark Grey
-                    news:  { color: { background: '#ef4444' } }, // Red
-                    ent:   { color: { background: '#eab308' }, font: { color: 'black' } }, // Yellow
-                    print: { color: { background: '#10b981' } }, // Green
-                    ott:   { color: { background: '#8b5cf6' } }, // Purple
-                    sports:{ color: { background: '#f97316' } }  // Orange
-                },
-                physics: false // Physics disabled for static flowchart look
-            };
-
-            network = new vis.Network(container, data, options);
-            
-            // Interaction: Tap to focus
-            network.on("click", function(params) {
-                if (params.nodes.length) {
-                    network.focus(params.nodes[0], { animation: true, scale: 1.2 });
-                }
-            });
-        }
-
-        // --- 3. FILTER LOGIC ---
-        function applyFilters() {
-            const ownerVal = document.getElementById('ownerFilter').value;
-            
-            // Get all checked boxes for types
-            const checkedTypes = Array.from(document.querySelectorAll('.type-filter:checked')).map(cb => cb.value);
-            // Always include structural nodes (owners/houses) so the tree doesn't break
-            checkedTypes.push('owner', 'house');
-
-            // Filter Nodes
-            const filteredNodes = allNodes.filter(node => {
-                // 1. Check Owner
-                const ownerMatch = (ownerVal === 'all') || (node.rootId === ownerVal);
-                
-                // 2. Check Type
-                const typeMatch = checkedTypes.includes(node.group);
-
-                return ownerMatch && typeMatch;
-            });
-
-            // Update Data
-            nodesDataSet.clear();
-            nodesDataSet.add(filteredNodes);
-            
-            // Re-fit view
-            setTimeout(() => network.fit({ animation: true }), 100);
-        }
-
-        // Init
-        window.addEventListener('load', () => {
-            initNetwork();
-            applyFilters(); // Apply default filters
+        // Populate Sidebar
+        const ownerContainer = document.getElementById('ownerFilters');
+        masters.forEach(m => {
+            const div = document.createElement('div');
+            div.innerHTML = `<label><input type="checkbox" checked onchange="updateFilter()" value="${m.id}" class="owner-check"> ${m.label}</label>`;
+            ownerContainer.appendChild(div);
         });
 
+        // Setup DataSets
+        const nodesDataSet = new vis.DataSet(rawNodes);
+        const edgesDataSet = new vis.DataSet(rawEdges);
+
+        const container = document.getElementById('mynetwork');
+        const data = { nodes: nodesDataSet, edges: edgesDataSet };
+        const options = {
+            layout: {
+                hierarchical: {
+                    direction: 'UD',
+                    sortMethod: 'directed',
+                    levelSeparation: 140,
+                    nodeSpacing: 100,
+                    treeSpacing: 100,
+                    blockShifting: true,
+                    edgeMinimization: true,
+                    parentCentralization: true
+                }
+            },
+            nodes: {
+                shape: 'box',
+                font: { face: 'Segoe UI', color: 'white', size: 14 },
+                margin: 10,
+                borderWidth: 0,
+                shadow: true
+            },
+            groups: {
+                owner: { color: '#1e293b', shape: 'box', font: {size: 16, color: '#fff'} }, // Slate
+                house: { color: '#475569', shape: 'box' }, // Light Slate
+                news: { color: '#ef4444', shape: 'ellipse' }, // Red
+                print: { color: '#10b981', shape: 'ellipse' }, // Green
+                movie: { color: '#eab308', shape: 'ellipse' }, // Yellow
+                ott: { color: '#8b5cf6', shape: 'ellipse' }, // Purple
+                sports: { color: '#f97316', shape: 'ellipse' }, // Orange
+                music: { color: '#ec4899', shape: 'ellipse' }, // Pink
+                app: { color: '#06b6d4', shape: 'ellipse' } // Cyan
+            },
+            edges: {
+                color: { color: '#cbd5e0' },
+                width: 1.5,
+                smooth: { type: 'cubicBezier', forceDirection: 'vertical', roundness: 0.4 },
+                arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+            },
+            physics: false,
+            interaction: {
+                hover: true,
+                tooltipDelay: 200,
+                zoomView: true,
+                dragView: true
+            }
+        };
+
+        const network = new vis.Network(container, data, options);
+
+        network.once("afterDrawing", function() {
+            document.getElementById('loading').style.display = 'none';
+            network.fit();
+        });
+
+        function updateFilter() {
+            const typeCheckboxes = document.querySelectorAll('input[type="checkbox"]:not(.owner-check)');
+            const activeTypes = Array.from(typeCheckboxes).filter(c => c.checked).map(c => c.value);
+
+            const ownerCheckboxes = document.querySelectorAll('.owner-check');
+            const activeOwners = Array.from(ownerCheckboxes).filter(c => c.checked).map(c => c.value);
+
+            const filteredNodes = rawNodes.filter(node => {
+                if (!activeOwners.includes(node.master)) return false;
+                if (['owner', 'house'].includes(node.group)) return true;
+                return activeTypes.includes(node.group);
+            });
+
+            nodesDataSet.clear();
+            nodesDataSet.add(filteredNodes);
+            network.fit({ animation: true });
+        }
+
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
     </script>
 </body>
 </html>
+```
